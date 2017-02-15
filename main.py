@@ -1,8 +1,8 @@
 import urllib.request
 import re
 import html
-import time
-
+from urllib.parse import urlparse
+import os
 
 #https://lenta.ru/news/2017/01/19/avalanche30/
 #https://www.gazeta.ru/politics/2017/01/19_a_10481981.shtml#page1
@@ -16,8 +16,14 @@ class NewsParser:
 
     def __init__(self, link):
         self._link = link
+        self._ready_text = None
 
-    def receive_news(self):
+    def start(self):
+        title, article = self.prepare_data(self.receive_news())
+        article = self.generate_text(article)
+        self.save_to_file(title, article)
+
+    def receive_news(self):  # Загрузить страницу с новостью
         request = urllib.request.Request(self._link)
         request.add_header('User-Agent', 'Mozilla/5.0')
         response = urllib.request.urlopen(request)
@@ -25,7 +31,7 @@ class NewsParser:
         raw_data = response.read().decode(page_charset)
         return raw_data
 
-    def prepare_data(self, raw_data):
+    def prepare_data(self, raw_data):  # Получить заголовки и текст статьи
         article_title = re.search(r'<title>(.*?)</title>', raw_data, re.MULTILINE | re.VERBOSE).group(1)
         article_text = re.findall(r'<p>(.*?)</p>', raw_data, re.MULTILINE | re.VERBOSE)
         clear_article = [html.unescape(item) for item in article_text]
@@ -33,7 +39,7 @@ class NewsParser:
 
         return article_title, clear_article
 
-    def generate_text(self, clear_text):
+    def generate_text(self, clear_text):  # Очистка текста от тегов оформления
         article = []
         for i in clear_text:
             r = re.search(r'<strong.*>(.*?)</strong>', i)
@@ -44,7 +50,8 @@ class NewsParser:
         return article
 
     def save_to_file(self, title, article):
-        with open('text.txt', 'w', encoding='utf-8') as file:
+        path = self.get_path_from_link()
+        with open(path, 'w', encoding='utf-8') as file:
             file.write(title)
             for item in article:
                 if 'title' in item:
@@ -55,10 +62,23 @@ class NewsParser:
                     file.write('\n\n')
 
     def get_path_from_link(self):
-        pass
+        link = self._link
+        if self._link.endswith('/'):
+            link = link[:-1]
+        link = urlparse(link)
+        link = link.netloc + link.path
+        path = link.split('/')
+        filename = path[-1]
+        path = path[:-1]
+        path = os.path.join(os.getcwd(), *path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        else:
+            print('Директория уже создана')
+        return os.path.join(path, filename)
 
 
-class FootnoteNumbers:
+class FootnoteNumbers:  # Вспомогательный класс для замены ссылок
     def __init__(self, links):
         self.links = links
 
@@ -71,7 +91,7 @@ class FootnoteNumbers:
         return '[{}] {}'.format(*next(s))
 
 
-def highlight_links(text):
+def highlight_links(text):  # Ссылки в квадратные скобки
     data = []
     query_for_links = re.compile(r'<a\b.*?(?:href=\"(.*?)\")[^>]*>(.*?)</a>')
 
@@ -112,3 +132,6 @@ def text_wrap(text, width):
             newline = True
 
     return ''.join(s)
+
+news = NewsParser('https://lenta.ru/news/2017/01/19/avalanche30/')
+news.start()
