@@ -76,7 +76,7 @@ class NewsParser:
                     file.write('\n\n')
 
     def _get_path_from_link(self):
-        regex = r'(?:^https://)(.+)(\b.+)\b[\/]?'
+        regex = r'(?:^http[s]?://)(.+)(\b.+)\b[\/]?'
         result = re.match(regex, self._link)
         path = os.path.normpath(result.group(1))
         filename = result.group(2)
