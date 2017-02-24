@@ -9,6 +9,7 @@ class NewsParser:
 
     def __init__(self, link):
         self._link = link
+        self.path = None
 
     def start(self):
         print('Парсинг...')
@@ -64,8 +65,9 @@ class NewsParser:
         return data
 
     def _save_to_file(self, title, article):
-        path = self._get_path_from_link()
-        with open(path, 'w', encoding='utf-8') as file:
+        #path = self._get_path_from_link()
+        self._get_path_from_link()
+        with open(self.path, 'w', encoding='utf-8') as file:
             file.write(title + '\n\n')
             for item in article:
                 if 'title' in item:
@@ -85,7 +87,8 @@ class NewsParser:
             os.makedirs(path)
         else:
             print('Директория уже создана')
-        return os.path.join(path, filename + '.txt')
+        #return os.path.join(path, filename + '.txt')
+        self.path = os.path.join(path, filename + '.txt')
 
 
 class Linker:  # Вспомогательный класс для замены ссылок
